@@ -4,199 +4,167 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Battle Royale Tactico - Zona de Guerra</title>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --neon-cyan: #00f0ff;
-      --neon-pink: #ff2a6d;
-      --neon-green: #39ff14;
-      --neon-orange: #ff8c00;
-      --neon-red: #ff003c;
-      --neon-yellow: #ffe600;
-      --dark-bg: #0a0a0f;
-      --panel-bg: rgba(10, 15, 30, 0.75);
-      --glass-border: rgba(0, 240, 255, 0.2);
-      --glass-glow: rgba(0, 240, 255, 0.1);
+      --neon-cyan: #38bdf8;
+      --neon-pink: #f43f5e;
+      --neon-green: #22c55e;
+      --neon-orange: #f97316;
+      --neon-red: #be123c;
+      --neon-yellow: #facc15;
+      --dark-bg: #020617;
+      --panel-bg: rgba(15, 23, 42, 0.85);
+      --glass-border: rgba(56, 189, 248, 0.2);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Rajdhani', sans-serif;
-      background: var(--dark-bg);
-      color: #e0e0e0;
-      overflow: hidden;
-      height: 100vh;
-      width: 100vw;
-    }
-    .bg-grid {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background-image:
-        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
-      background-size: 50px 50px;
-      pointer-events: none;
-      z-index: 0;
+      background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
     }
     .glass-panel {
       background: var(--panel-bg);
-      backdrop-filter: blur(16px);
+      backdrop-filter: blur(12px);
       border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-      position: relative;
-      overflow: hidden;
-    }
-    .screen {
-      display: none;
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 10;
-      padding: 20px;
-      overflow-y: auto;
-    }
-    .screen.active { display: flex; flex-direction: column; align-items: center; }
-    #loginScreen {
-      justify-content: center;
-      background: radial-gradient(ellipse at center, rgba(0, 20, 40, 0.9) 0%, var(--dark-bg) 70%);
-    }
-    .login-container {
-      width: 100%; max-width: 420px;
-      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+      width: 100%;
+      max-width: 450px;
+      padding: 30px;
       text-align: center;
     }
     .game-title {
       font-family: 'Orbitron', sans-serif;
-      font-size: 2.8rem;
+      font-size: 2rem;
       font-weight: 900;
       color: var(--neon-cyan);
-      text-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
-      margin-bottom: 8px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
     }
     .game-subtitle {
-      font-size: 1rem;
-      color: var(--neon-pink);
-      letter-spacing: 8px;
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 25px;
       text-transform: uppercase;
-      margin-bottom: 40px;
+      letter-spacing: 4px;
     }
     .input-group {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       text-align: left;
     }
     .input-group label {
       display: block;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--neon-cyan);
-      margin-bottom: 8px;
+      margin-bottom: 5px;
       text-transform: uppercase;
-      letter-spacing: 2px;
+      font-weight: bold;
     }
     .input-field {
       width: 100%;
-      padding: 14px 18px;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(0, 240, 255, 0.3);
-      border-radius: 8px;
-      color: #fff;
-      font-family: 'Rajdhani', sans-serif;
+      padding: 12px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: white;
       font-size: 1rem;
       outline: none;
     }
+    .input-field:focus { border-color: var(--neon-cyan); }
     .btn {
       width: 100%;
-      padding: 14px;
+      padding: 12px;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       font-family: 'Orbitron', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 3px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, var(--neon-cyan), #0088aa);
-      color: #000;
-      box-shadow: 0 4px 20px rgba(0, 240, 255, 0.3);
-    }
-    .btn-secondary {
-      background: transparent;
-      color: var(--neon-cyan);
-      border: 1px solid var(--neon-cyan);
-      margin-top: 12px;
-    }
-    .btn-danger {
-      background: linear-gradient(135deg, var(--neon-red), #aa0033);
-      color: #fff;
-    }
-    .error-msg {
-      color: var(--neon-red);
       font-size: 0.85rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      cursor: pointer;
       margin-top: 10px;
-      text-align: center;
-      min-height: 20px;
+      transition: background 0.3s;
     }
+    .btn-primary { background: #0284c7; color: white; }
+    .btn-primary:hover { background: #0369a1; }
+    .btn-secondary { background: transparent; color: var(--neon-cyan); border: 1px solid var(--neon-cyan); }
+    .btn-secondary:hover { background: rgba(56, 189, 248, 0.1); }
+    .error-msg { color: var(--neon-red); font-size: 0.85rem; margin-top: 10px; }
     .hidden { display: none !important; }
+    
+    /* Estilos del Modal de la Tienda */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(2, 6, 23, 0.9); z-index: 1000; justify-content: center; align-items: center; padding: 20px;
+    }
+    .modal-content {
+      background: #0f172a; border: 1px solid #334155; border-radius: 12px; width: 100%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-header { padding: 15px 20px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 20px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
   </style>
 </head>
 <body>
-  <div class="bg-grid"></div>
 
-  <!-- Login Screen -->
-  <div class="screen active" id="loginScreen">
-    <div class="glass-panel login-container">
-      <h1 class="game-title">BATTLE ROYALE</h1>
-      <p class="game-subtitle">Tactico</p>
-      <div id="loginForm">
-        <div class="input-group">
-          <label>Numero de WhatsApp</label>
-          <input type="tel" class="input-field" id="phoneInput" placeholder="+57 300 1234567" maxlength="15">
-        </div>
-        <div class="input-group">
-          <label>Nombre de Soldado</label>
-          <input type="text" class="input-field" id="nameInput" placeholder="Tu callsign" maxlength="20">
-        </div>
-        <button class="btn btn-primary" onclick="register()">Ingresar a la Zona de Guerra</button>
-        <button class="btn btn-secondary" onclick="login()">Ya tengo cuenta</button>
-        <p class="error-msg" id="loginError"></p>
+  <!-- Pantalla de Login -->
+  <div class="glass-panel" id="loginScreen">
+    <h1 class="game-title">Battle Royale</h1>
+    <p class="game-subtitle">Centro de Mando</p>
+    
+    <div id="loginForm">
+      <div class="input-group">
+        <label>Número de WhatsApp</label>
+        <input type="tel" class="input-field" id="phoneInput" placeholder="Ej: 3001234567">
       </div>
-      <div id="playerInfo" class="hidden">
-        <div style="margin-bottom: 20px;">
-          <p style="font-family: 'Orbitron', sans-serif; color: var(--neon-cyan); font-size: 1.2rem;" id="loginName"></p>
-          <p style="color: var(--neon-yellow); font-size: 1rem; margin-top: 4px;">💵 <span id="loginMoney"></span></p>
-        </div>
-        <button class="btn btn-primary" onclick="enterLobby()">Buscar Partida</button>
-        <button class="btn btn-secondary" onclick="openShop()">Tienda de Armamento</button>
-        <button class="btn btn-secondary" onclick="logout()">Cambiar Cuenta</button>
+      <div class="input-group">
+        <label>Nombre de Soldado</label>
+        <input type="text" class="input-field" id="nameInput" placeholder="Tu apodo táctico">
       </div>
+      <button class="btn btn-primary" onclick="register()">Registrar e Ingresar</button>
+      <button class="btn btn-secondary" onclick="login()">Ya tengo cuenta</button>
+      <p class="error-msg" id="loginError"></p>
+    </div>
+
+    <div id="playerInfo" class="hidden">
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: var(--neon-cyan);" id="loginName">Soldado</h3>
+        <p style="color: var(--neon-yellow); font-size: 1.1rem; margin-top: 5px;">💵 $<span id="loginMoney">0</span></p>
+      </div>
+      <button class="btn btn-primary" onclick="enterLobby()">Buscar Partida Multijugador</button>
+      <button class="btn btn-secondary" onclick="openShop()">Abrir Tienda de Armas</button>
+      <button class="btn btn-secondary" style="border-color: #f43f5e; color: #f43f5e;" onclick="logout()">Cerrar Sesión</button>
     </div>
   </div>
 
-  <!-- Shop Modal -->
-  <div class="modal-overlay" id="shopModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center;">
-    <div class="glass-panel modal-content" style="width:90%; max-width:800px; padding:20px; background:#0a0f1e;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h2 style="color:var(--neon-cyan);">🛒 TIENDA DE ARMAMENTO</h2>
-        <button onclick="closeShop()" class="btn btn-danger" style="width:auto; padding:5px 15px;">X</button>
+  <!-- Modal de Tienda -->
+  <div class="modal-overlay" id="shopModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="color: var(--neon-cyan);">🛒 Tienda de Armas</h3>
+        <button class="btn btn-primary" style="width: auto; padding: 5px 10px; margin:0;" onclick="closeShop()">X</button>
       </div>
-      <div id="shopGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:10px; max-height:60vh; overflow-y:auto;"></div>
+      <div class="modal-body" id="shopGrid">
+        <!-- Aquí se cargan las armas dinámicamente -->
+      </div>
     </div>
   </div>
 
   <script>
     const socket = io();
     let currentPlayer = null;
-    let currentMatchId = null;
-    let catalog = { weapons: {}, armors: [], medicines: [], skins: [] };
 
     function register() {
         const phone = document.getElementById('phoneInput').value.trim();
         const name = document.getElementById('nameInput').value.trim();
         if (!phone || !name) {
-            document.getElementById('loginError').textContent = 'Ingresa número y nombre de soldado';
+            document.getElementById('loginError').textContent = 'Completa todos los campos';
             return;
         }
         socket.emit('auth:register', { phone, name });
@@ -205,7 +173,7 @@
     function login() {
         const phone = document.getElementById('phoneInput').value.trim();
         if (!phone) {
-            document.getElementById('loginError').textContent = 'Ingresa tu número de WhatsApp';
+            document.getElementById('loginError').textContent = 'Ingresa tu número';
             return;
         }
         socket.emit('auth:login', { phone });
@@ -220,6 +188,7 @@
     function enterLobby() {
         if (!currentPlayer) return;
         socket.emit('lobby:join', { phone: currentPlayer.phone });
+        alert('Conectando a sala de espera en la nube...');
     }
 
     function openShop() {
@@ -245,14 +214,25 @@
     });
 
     socket.on('shop:catalog', (data) => {
-        catalog = data;
-        showShopTab('weapons');
-    });
-
-    function showShopTab(tab) {
         const grid = document.getElementById('shopGrid');
-        grid.innerHTML = '<p style="color:#fff;">Cargando inventario...</p>';
-    }
+        grid.innerHTML = '';
+        
+        // Cargar armas de todas las categorías
+        Object.keys(data.weapons).forEach(catKey => {
+            data.weapons[catKey].forEach(w => {
+                const itemBox = document.createElement('div');
+                itemBox.style.cssText = "background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155;";
+                itemBox.innerHTML = `
+                    <div style="font-size: 1.5rem;">${w.icon}</div>
+                    <div style="font-weight: bold; font-size: 0.85rem; color: #fff;">${w.name}</div>
+                    <div style="font-size: 0.75rem; color: #94a3b8;">DMG: ${w.damage}</div>
+                    <div style="color: var(--neon-yellow); font-size: 0.9rem; margin: 5px 0;">$${w.price}</div>
+                    <button class="btn btn-primary" style="padding: 5px; font-size: 0.7rem; margin:0;" onclick="buyItem('weapons', '${w.id}')">Comprar</button>
+                `;
+                grid.appendChild(itemBox);
+            });
+        });
+    });
 
     function buyItem(category, itemId) {
         socket.emit('shop:buy', { phone: currentPlayer.phone, itemId, category });
@@ -261,7 +241,7 @@
     socket.on('shop:success', ({ item, money, player }) => {
         currentPlayer = player;
         document.getElementById('loginMoney').textContent = money;
-        alert(`¡Compra exitosa: ${item.name}!`);
+        alert(`¡Compraste ${item.name} con éxito!`);
     });
 
     socket.on('shop:error', (msg) => {
