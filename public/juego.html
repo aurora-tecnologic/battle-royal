@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Royale</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { background: #090d16; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
+        .card { background: #131b2e; max-width: 400px; margin: auto; padding: 20px; border-radius: 10px; }
+        button { background: #0284c7; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🏝️ BATTLE ROYALE</h1>
+        <div id="login">
+            <p>Tu WhatsApp:</p>
+            <input type="text" id="tel" placeholder="Ej: 57300123" style="padding:10px; width:80%;">
+            <button onclick="entrar()">Entrar al Juego</button>
+        </div>
+        <div id="game" style="display:none;">
+            <p>❤️ HP: <span id="hp">100</span> | 🪙 Dinero: $<span id="dinero">2000</span></p>
+            <p>📍 Sector: <span id="sector">Playa</span></p>
+            <button onclick="mover('Búnker')">Moverse al Búnker</button>
+        </div>
+    </div>
+    <script>
+        const socket = io();
+        let miTel = '';
+        function entrar() {
+            miTel = document.getElementById('tel').value;
+            if(!miTel) return alert('Escribe tu número');
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+            socket.emit('player:join', { telefono: miTel });
+        }
+        function mover(sector) {
+            socket.emit('player:action', { tipo: 'mover', sector });
+        }
+        socket.on('state:update', (jugadores) => {
+            let mio = Object.values(jugadores).find(j => j.telefono === miTel);
+            if(mio) {
+                document.getElementById('hp').innerText = mio.vida;
+                document.getElementById('dinero').innerText = mio.dinero;
+                document.getElementById('sector').innerText = mio.sector;
+            }
+        });
+    </script>
+</body>
+</html>
