@@ -25,6 +25,7 @@
       justify-content: center;
       align-items: center;
       padding: 15px;
+      overflow: hidden;
     }
     .tactical-card {
       background: var(--panel-bg);
@@ -82,7 +83,7 @@
     }
     .modal-header { padding: 15px 20px; background: #070d1a; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
     .modal-body { padding: 20px; overflow-y: auto; display: grid; grid-template-columns: 1fr; gap: 12px; }
-    
+
     .weapon-card {
       background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 10px;
       padding: 14px; display: flex; align-items: center; justify-content: space-between;
@@ -93,6 +94,43 @@
     .weapon-name { font-family: 'Orbitron', sans-serif; font-size: 0.9rem; color: #fff; }
     .weapon-stats { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
     .weapon-price { font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: var(--neon-gold); margin-bottom: 6px; }
+
+    /* ---------- PANTALLA DE COMBATE ---------- */
+    #gameScreen {
+      display: none;
+      position: fixed; inset: 0; z-index: 50; background: #08130f;
+    }
+    #gameCanvas { display: block; background: #0a1a12; }
+    #combatHud {
+      position: fixed; top: 12px; left: 12px; z-index: 55;
+      background: var(--panel-bg); backdrop-filter: blur(10px);
+      border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 16px; min-width: 180px;
+    }
+    #combatHud .opName { font-family:'Orbitron',sans-serif; font-size:0.85rem; color:var(--neon-cyan); }
+    #hpBarOuter { width: 160px; height: 12px; background:#1e293b; border-radius:6px; overflow:hidden; margin-top:6px; }
+    #hpBarFill { height:100%; background: linear-gradient(90deg,#f43f5e,#fb923c); width:100%; transition: width .2s; }
+    #shieldBarOuter { width: 160px; height: 6px; background:#1e293b; border-radius:6px; overflow:hidden; margin-top:4px; }
+    #shieldBarFill { height:100%; background: linear-gradient(90deg,#00f0ff,#0284c7); width:0%; transition: width .2s; }
+    #matchStatus {
+      position: fixed; top: 12px; right: 12px; z-index: 55; color: var(--neon-gold);
+      font-family: 'Orbitron', sans-serif; font-size: 0.8rem; text-align: right;
+      background: var(--panel-bg); border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 14px;
+    }
+    #killfeed {
+      position: fixed; top: 70px; right: 12px; z-index: 55; text-align: right;
+      font-size: 0.8rem; color: #e2e8f0; max-width: 260px;
+    }
+    #killfeed div { background: rgba(2,6,23,0.7); padding: 5px 10px; border-radius: 6px; margin-bottom: 4px; border-left: 3px solid var(--neon-red); }
+    #controlsHint {
+      position: fixed; bottom: 12px; left: 12px; z-index: 55; color: #64748b;
+      font-size: 0.75rem; background: var(--panel-bg); padding: 8px 14px; border-radius: 8px;
+      border: 1px solid var(--border-glow);
+    }
+    #endOverlay {
+      display:none; position: fixed; inset:0; z-index: 60; background: rgba(2,6,23,0.9);
+      justify-content:center; align-items:center; flex-direction:column;
+    }
+    #endOverlay h2 { font-family:'Orbitron',sans-serif; color: var(--neon-gold); font-size: 1.8rem; text-shadow: 0 0 20px rgba(251,191,36,0.5); margin-bottom: 16px; }
   </style>
 </head>
 <body>
@@ -125,6 +163,7 @@
       <button class="btn btn-cyan" onclick="findMatch()">🎮 Buscar Partida en la Nube</button>
       <button class="btn btn-outline" onclick="openShop()">🛒 Arsenal y Tienda</button>
       <button class="btn btn-outline" style="border-color: var(--neon-red); color: var(--neon-red); margin-top: 20px;" onclick="location.reload()">Cerrar Sesión</button>
+      <div class="error" id="lobbyStatus" style="color:var(--neon-cyan); margin-top:14px;"></div>
     </div>
   </div>
 
@@ -139,10 +178,46 @@
     </div>
   </div>
 
+  <!-- PANTALLA DE COMBATE -->
+  <div id="gameScreen">
+    <canvas id="gameCanvas"></canvas>
+    <div id="combatHud">
+      <div class="opName" id="opName">--</div>
+      <div id="hpBarOuter"><div id="hpBarFill"></div></div>
+      <div id="shieldBarOuter"><div id="shieldBarFill"></div></div>
+    </div>
+    <div id="matchStatus">Esperando...</div>
+    <div id="killfeed"></div>
+    <div id="controlsHint">WASD: moverte · Click: disparar al enemigo más cercano</div>
+    <div id="endOverlay">
+      <h2 id="endMessage">--</h2>
+      <button class="btn btn-cyan" style="width:auto; padding:12px 30px;" onclick="location.reload()">Volver al Comando</button>
+    </div>
+  </div>
+
   <script>
     const socket = io();
     let player = null;
 
+    // ---------- ESTADO DE PARTIDA ----------
+    let myId = null;
+    let matchId = null;
+    let players = {};
+    const keys = {};
+    const MOVE_SPEED = 4;
+    let lastSent = 0;
+    let loopRunning = false;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    // ---------- AUTH ----------
     function register() {
       const phone = document.getElementById('phoneInput').value.trim();
       const name = document.getElementById('nameInput').value.trim();
@@ -168,15 +243,14 @@
       document.getElementById('authError').textContent = msg;
     });
 
+    // ---------- TIENDA ----------
     function openShop() {
       socket.emit('shop:getCatalog');
       document.getElementById('shopModal').style.display = 'flex';
     }
-
     function closeShop() {
       document.getElementById('shopModal').style.display = 'none';
     }
-
     socket.on('shop:catalog', (catalog) => {
       const grid = document.getElementById('shopGrid');
       grid.innerHTML = '';
@@ -197,29 +271,177 @@
         });
       });
     });
-
     function buyWeapon(itemId) {
       socket.emit('shop:buy', { phone: player.phone, itemId, category: 'weapons' });
     }
-
     socket.on('shop:success', (data) => {
       player = data.player;
       document.getElementById('dashMoney').textContent = player.money;
       alert(`¡Transacción exitosa! Adquiriste ${data.item.name}`);
     });
-
     socket.on('shop:error', (msg) => {
       alert(msg);
     });
 
+    // ---------- LOBBY ----------
     function findMatch() {
       socket.emit('lobby:join', { phone: player.phone });
-      alert('📡 Sintonizando señal de combate... Buscando jugadores en la red.');
+      document.getElementById('lobbyStatus').textContent = '📡 Sintonizando señal de combate...';
+    }
+    socket.on('lobby:status', ({ count }) => {
+      document.getElementById('lobbyStatus').textContent = `Jugadores en espera: ${count}`;
+    });
+
+    // ---------- INICIO DE PARTIDA ----------
+    socket.on('match:started', (data) => {
+      matchId = data.matchId;
+      myId = socket.id;
+      players = {};
+      data.players.forEach(p => { players[p.id] = p; });
+
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('gameScreen').style.display = 'block';
+      document.getElementById('opName').textContent = player.name;
+      document.getElementById('matchStatus').textContent = `Partida ${matchId}`;
+
+      if (!loopRunning) {
+        loopRunning = true;
+        requestAnimationFrame(gameLoop);
+      }
+    });
+
+    socket.on('player:moved', ({ id, x, y, rotation }) => {
+      if (players[id]) {
+        players[id].x = x;
+        players[id].y = y;
+        players[id].rotation = rotation;
+      }
+    });
+
+    socket.on('player:hit', ({ targetId, targetHp, targetShield }) => {
+      if (players[targetId]) {
+        players[targetId].hp = targetHp;
+        players[targetId].shield = targetShield;
+      }
+      if (targetId === myId) {
+        document.getElementById('hpBarFill').style.width = Math.max(0, targetHp) + '%';
+        document.getElementById('shieldBarFill').style.width = Math.max(0, targetShield) + '%';
+      }
+    });
+
+    socket.on('player:eliminated', ({ targetId, killerId }) => {
+      if (players[targetId]) players[targetId].alive = false;
+      const killerName = killerId && players[killerId] ? players[killerId].name : 'Zona';
+      const targetName = players[targetId] ? players[targetId].name : '???';
+      addKillfeed(`${killerName} eliminó a ${targetName}`);
+      if (targetId === myId) {
+        document.getElementById('matchStatus').textContent = 'Has sido eliminado';
+      }
+    });
+
+    socket.on('match:ended', ({ winnerId, winnerName }) => {
+      const overlay = document.getElementById('endOverlay');
+      const msg = document.getElementById('endMessage');
+      msg.textContent = (winnerId === myId)
+        ? '🏆 VICTORIA ABSOLUTA'
+        : (winnerName ? `🏆 Ganador: ${winnerName}` : 'Partida finalizada');
+      overlay.style.display = 'flex';
+    });
+
+    function addKillfeed(text) {
+      const el = document.getElementById('killfeed');
+      const line = document.createElement('div');
+      line.textContent = text;
+      el.appendChild(line);
+      setTimeout(() => line.remove(), 5000);
     }
 
-    socket.on('match:started', (data) => {
-      alert(`🚀 ¡Partida encontrada! Entrando a la zona de guerra (${data.matchId})`);
+    // ---------- CONTROLES ----------
+    window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+    canvas.addEventListener('click', () => {
+      if (!myId || !players[myId] || !players[myId].alive) return;
+      let closest = null, closestDist = Infinity;
+      for (const id in players) {
+        if (id === myId || !players[id].alive) continue;
+        const dx = players[id].x - players[myId].x;
+        const dy = players[id].y - players[myId].y;
+        const d = Math.hypot(dx, dy);
+        if (d < closestDist) { closestDist = d; closest = id; }
+      }
+      if (closest) socket.emit('player:shoot', { targetId: closest });
     });
+
+    // ---------- LOOP ----------
+    function gameLoop(ts) {
+      if (myId && players[myId] && players[myId].alive) {
+        const me = players[myId];
+        let dx = 0, dy = 0;
+        if (keys['w']) dy -= MOVE_SPEED;
+        if (keys['s']) dy += MOVE_SPEED;
+        if (keys['a']) dx -= MOVE_SPEED;
+        if (keys['d']) dx += MOVE_SPEED;
+
+        if (dx !== 0 || dy !== 0) {
+          me.x += dx; me.y += dy;
+          me.rotation = Math.atan2(dy, dx);
+          if (ts - lastSent > 50) {
+            socket.emit('player:move', { x: me.x, y: me.y, rotation: me.rotation });
+            lastSent = ts;
+          }
+        }
+      }
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function render() {
+      ctx.fillStyle = '#0a1a12';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (!myId || !players[myId]) return;
+
+      const cam = players[myId];
+      const offsetX = canvas.width / 2 - cam.x;
+      const offsetY = canvas.height / 2 - cam.y;
+
+      ctx.strokeStyle = 'rgba(0,240,255,0.07)';
+      for (let gx = 0; gx <= 1000; gx += 50) {
+        ctx.beginPath();
+        ctx.moveTo(gx + offsetX, 0 + offsetY);
+        ctx.lineTo(gx + offsetX, 1000 + offsetY);
+        ctx.stroke();
+      }
+      for (let gy = 0; gy <= 1000; gy += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0 + offsetX, gy + offsetY);
+        ctx.lineTo(1000 + offsetX, gy + offsetY);
+        ctx.stroke();
+      }
+
+      for (const id in players) {
+        const p = players[id];
+        if (!p.alive) continue;
+        const px = p.x + offsetX;
+        const py = p.y + offsetY;
+
+        ctx.fillStyle = id === myId ? '#00f0ff' : '#f43f5e';
+        ctx.beginPath();
+        ctx.arc(px, py, 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + Math.cos(p.rotation || 0) * 20, py + Math.sin(p.rotation || 0) * 20);
+        ctx.stroke();
+
+        ctx.fillStyle = '#f1f5f9';
+        ctx.font = '12px Rajdhani, Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.name || '???', px, py - 24);
+      }
+    }
   </script>
 </body>
 </html>
