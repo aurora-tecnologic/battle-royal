@@ -1,17 +1,15 @@
 {
-  "name": "battle-royale-tactico",
+  "name": "battle-royal",
   "version": "1.0.0",
+  "description": "Battle Royale Tactico",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "socket.io": "^4.7.2",
-    "cors": "^2.8.5"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "firebase-admin": "^12.0.0",
+    "socket.io": "^4.7.2"
   }
 }
-
