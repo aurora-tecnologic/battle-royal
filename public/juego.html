@@ -1,51 +1,272 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Battle Royale</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        body { background: #090d16; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
-        .card { background: #131b2e; max-width: 400px; margin: auto; padding: 20px; border-radius: 10px; }
-        button { background: #0284c7; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Battle Royale Tactico - Zona de Guerra</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --neon-cyan: #00f0ff;
+      --neon-pink: #ff2a6d;
+      --neon-green: #39ff14;
+      --neon-orange: #ff8c00;
+      --neon-red: #ff003c;
+      --neon-yellow: #ffe600;
+      --dark-bg: #0a0a0f;
+      --panel-bg: rgba(10, 15, 30, 0.75);
+      --glass-border: rgba(0, 240, 255, 0.2);
+      --glass-glow: rgba(0, 240, 255, 0.1);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--dark-bg);
+      color: #e0e0e0;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+    .bg-grid {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-image:
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glass-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .screen {
+      display: none;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 10;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .screen.active { display: flex; flex-direction: column; align-items: center; }
+    #loginScreen {
+      justify-content: center;
+      background: radial-gradient(ellipse at center, rgba(0, 20, 40, 0.9) 0%, var(--dark-bg) 70%);
+    }
+    .login-container {
+      width: 100%; max-width: 420px;
+      padding: 40px;
+      text-align: center;
+    }
+    .game-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+      margin-bottom: 8px;
+    }
+    .game-subtitle {
+      font-size: 1rem;
+      color: var(--neon-pink);
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+    .input-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .input-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--neon-cyan);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .input-field {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 8px;
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+      outline: none;
+    }
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--neon-cyan), #0088aa);
+      color: #000;
+      box-shadow: 0 4px 20px rgba(0, 240, 255, 0.3);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--neon-cyan);
+      border: 1px solid var(--neon-cyan);
+      margin-top: 12px;
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, var(--neon-red), #aa0033);
+      color: #fff;
+    }
+    .error-msg {
+      color: var(--neon-red);
+      font-size: 0.85rem;
+      margin-top: 10px;
+      text-align: center;
+      min-height: 20px;
+    }
+    .hidden { display: none !important; }
+  </style>
 </head>
 <body>
-    <div class="card">
-        <h1>🏝️ BATTLE ROYALE</h1>
-        <div id="login">
-            <p>Tu WhatsApp:</p>
-            <input type="text" id="tel" placeholder="Ej: 57300123" style="padding:10px; width:80%;">
-            <button onclick="entrar()">Entrar al Juego</button>
+  <div class="bg-grid"></div>
+
+  <!-- Login Screen -->
+  <div class="screen active" id="loginScreen">
+    <div class="glass-panel login-container">
+      <h1 class="game-title">BATTLE ROYALE</h1>
+      <p class="game-subtitle">Tactico</p>
+      <div id="loginForm">
+        <div class="input-group">
+          <label>Numero de WhatsApp</label>
+          <input type="tel" class="input-field" id="phoneInput" placeholder="+57 300 1234567" maxlength="15">
         </div>
-        <div id="game" style="display:none;">
-            <p>❤️ HP: <span id="hp">100</span> | 🪙 Dinero: $<span id="dinero">2000</span></p>
-            <p>📍 Sector: <span id="sector">Playa</span></p>
-            <button onclick="mover('Búnker')">Moverse al Búnker</button>
+        <div class="input-group">
+          <label>Nombre de Soldado</label>
+          <input type="text" class="input-field" id="nameInput" placeholder="Tu callsign" maxlength="20">
         </div>
+        <button class="btn btn-primary" onclick="register()">Ingresar a la Zona de Guerra</button>
+        <button class="btn btn-secondary" onclick="login()">Ya tengo cuenta</button>
+        <p class="error-msg" id="loginError"></p>
+      </div>
+      <div id="playerInfo" class="hidden">
+        <div style="margin-bottom: 20px;">
+          <p style="font-family: 'Orbitron', sans-serif; color: var(--neon-cyan); font-size: 1.2rem;" id="loginName"></p>
+          <p style="color: var(--neon-yellow); font-size: 1rem; margin-top: 4px;">💵 <span id="loginMoney"></span></p>
+        </div>
+        <button class="btn btn-primary" onclick="enterLobby()">Buscar Partida</button>
+        <button class="btn btn-secondary" onclick="openShop()">Tienda de Armamento</button>
+        <button class="btn btn-secondary" onclick="logout()">Cambiar Cuenta</button>
+      </div>
     </div>
-    <script>
-        const socket = io();
-        let miTel = '';
-        function entrar() {
-            miTel = document.getElementById('tel').value;
-            if(!miTel) return alert('Escribe tu número');
-            document.getElementById('login').style.display = 'none';
-            document.getElementById('game').style.display = 'block';
-            socket.emit('player:join', { telefono: miTel });
+  </div>
+
+  <!-- Shop Modal -->
+  <div class="modal-overlay" id="shopModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center;">
+    <div class="glass-panel modal-content" style="width:90%; max-width:800px; padding:20px; background:#0a0f1e;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="color:var(--neon-cyan);">🛒 TIENDA DE ARMAMENTO</h2>
+        <button onclick="closeShop()" class="btn btn-danger" style="width:auto; padding:5px 15px;">X</button>
+      </div>
+      <div id="shopGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:10px; max-height:60vh; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let currentPlayer = null;
+    let currentMatchId = null;
+    let catalog = { weapons: {}, armors: [], medicines: [], skins: [] };
+
+    function register() {
+        const phone = document.getElementById('phoneInput').value.trim();
+        const name = document.getElementById('nameInput').value.trim();
+        if (!phone || !name) {
+            document.getElementById('loginError').textContent = 'Ingresa número y nombre de soldado';
+            return;
         }
-        function mover(sector) {
-            socket.emit('player:action', { tipo: 'mover', sector });
+        socket.emit('auth:register', { phone, name });
+    }
+
+    function login() {
+        const phone = document.getElementById('phoneInput').value.trim();
+        if (!phone) {
+            document.getElementById('loginError').textContent = 'Ingresa tu número de WhatsApp';
+            return;
         }
-        socket.on('state:update', (jugadores) => {
-            let mio = Object.values(jugadores).find(j => j.telefono === miTel);
-            if(mio) {
-                document.getElementById('hp').innerText = mio.vida;
-                document.getElementById('dinero').innerText = mio.dinero;
-                document.getElementById('sector').innerText = mio.sector;
-            }
-        });
-    </script>
+        socket.emit('auth:login', { phone });
+    }
+
+    function logout() {
+        currentPlayer = null;
+        document.getElementById('loginForm').classList.remove('hidden');
+        document.getElementById('playerInfo').classList.add('hidden');
+    }
+
+    function enterLobby() {
+        if (!currentPlayer) return;
+        socket.emit('lobby:join', { phone: currentPlayer.phone });
+    }
+
+    function openShop() {
+        socket.emit('shop:getCatalog');
+        document.getElementById('shopModal').style.display = 'flex';
+    }
+
+    function closeShop() {
+        document.getElementById('shopModal').style.display = 'none';
+    }
+
+    socket.on('auth:success', ({ player }) => {
+        currentPlayer = player;
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('playerInfo').classList.remove('hidden');
+        document.getElementById('loginName').textContent = player.name;
+        document.getElementById('loginMoney').textContent = player.money;
+        document.getElementById('loginError').textContent = '';
+    });
+
+    socket.on('auth:error', (msg) => {
+        document.getElementById('loginError').textContent = msg;
+    });
+
+    socket.on('shop:catalog', (data) => {
+        catalog = data;
+        showShopTab('weapons');
+    });
+
+    function showShopTab(tab) {
+        const grid = document.getElementById('shopGrid');
+        grid.innerHTML = '<p style="color:#fff;">Cargando inventario...</p>';
+    }
+
+    function buyItem(category, itemId) {
+        socket.emit('shop:buy', { phone: currentPlayer.phone, itemId, category });
+    }
+
+    socket.on('shop:success', ({ item, money, player }) => {
+        currentPlayer = player;
+        document.getElementById('loginMoney').textContent = money;
+        alert(`¡Compra exitosa: ${item.name}!`);
+    });
+
+    socket.on('shop:error', (msg) => {
+        alert(msg);
+    });
+  </script>
 </body>
 </html>
