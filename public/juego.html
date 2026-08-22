@@ -3,249 +3,222 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Battle Royale Tactico - Zona de Guerra</title>
+  <title>Battle Royale Táctico - Comando Central</title>
   <script src="/socket.io/socket.io.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --neon-cyan: #38bdf8;
-      --neon-pink: #f43f5e;
-      --neon-green: #22c55e;
-      --neon-orange: #f97316;
-      --neon-red: #be123c;
-      --neon-yellow: #facc15;
-      --dark-bg: #020617;
-      --panel-bg: rgba(15, 23, 42, 0.85);
-      --glass-border: rgba(56, 189, 248, 0.2);
+      --bg-deep: #050b14;
+      --panel-bg: rgba(13, 22, 38, 0.9);
+      --neon-cyan: #00f0ff;
+      --neon-gold: #fbbf24;
+      --neon-red: #f43f5e;
+      --border-glow: rgba(0, 240, 255, 0.3);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Rajdhani', sans-serif;
-      background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
-      color: #e2e8f0;
+      background: radial-gradient(circle at center, #0a1424 0%, var(--bg-deep) 100%);
+      color: #f1f5f9;
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 20px;
+      padding: 15px;
     }
-    .glass-panel {
+    .tactical-card {
       background: var(--panel-bg);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--glass-border);
-      border-radius: 12px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glow);
+      border-radius: 14px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255,255,255,0.1);
       width: 100%;
-      max-width: 450px;
-      padding: 30px;
+      max-width: 440px;
+      padding: 25px;
       text-align: center;
     }
-    .game-title {
+    h1 {
       font-family: 'Orbitron', sans-serif;
-      font-size: 2rem;
-      font-weight: 900;
+      font-size: 1.8rem;
       color: var(--neon-cyan);
-      margin-bottom: 5px;
-      text-transform: uppercase;
       letter-spacing: 2px;
+      text-shadow: 0 0 15px rgba(0,240,255,0.4);
     }
-    .game-subtitle {
-      font-size: 0.9rem;
-      color: #94a3b8;
-      margin-bottom: 25px;
-      text-transform: uppercase;
-      letter-spacing: 4px;
-    }
-    .input-group {
-      margin-bottom: 15px;
-      text-align: left;
-    }
-    .input-group label {
-      display: block;
-      font-size: 0.8rem;
-      color: var(--neon-cyan);
-      margin-bottom: 5px;
-      text-transform: uppercase;
-      font-weight: bold;
-    }
-    .input-field {
-      width: 100%;
-      padding: 12px;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      color: white;
-      font-size: 1rem;
-      outline: none;
-    }
-    .input-field:focus { border-color: var(--neon-cyan); }
-    .btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      font-family: 'Orbitron', sans-serif;
+    .subtitle {
       font-size: 0.85rem;
-      font-weight: bold;
+      color: #64748b;
+      letter-spacing: 4px;
       text-transform: uppercase;
-      cursor: pointer;
-      margin-top: 10px;
-      transition: background 0.3s;
+      margin-bottom: 20px;
     }
-    .btn-primary { background: #0284c7; color: white; }
-    .btn-primary:hover { background: #0369a1; }
-    .btn-secondary { background: transparent; color: var(--neon-cyan); border: 1px solid var(--neon-cyan); }
-    .btn-secondary:hover { background: rgba(56, 189, 248, 0.1); }
-    .error-msg { color: var(--neon-red); font-size: 0.85rem; margin-top: 10px; }
+    .input-group { margin-bottom: 15px; text-align: left; }
+    .input-group label { font-size: 0.75rem; color: var(--neon-cyan); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; display: block; margin-bottom: 5px; }
+    input {
+      width: 100%; padding: 12px; background: #020617; border: 1px solid #1e293b;
+      border-radius: 8px; color: #fff; font-size: 1rem; outline: none; font-family: 'Rajdhani', sans-serif;
+    }
+    input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 10px rgba(0,240,255,0.2); }
+    .btn {
+      width: 100%; padding: 12px; border: none; border-radius: 8px;
+      font-family: 'Orbitron', sans-serif; font-size: 0.8rem; font-weight: 700;
+      text-transform: uppercase; cursor: pointer; margin-top: 10px; letter-spacing: 1px;
+      transition: all 0.2s ease;
+    }
+    .btn-cyan { background: linear-gradient(135deg, #00f0ff, #0284c7); color: #020617; box-shadow: 0 4px 15px rgba(0,240,255,0.3); }
+    .btn-cyan:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,240,255,0.5); }
+    .btn-outline { background: transparent; color: var(--neon-cyan); border: 1px solid var(--neon-cyan); }
+    .btn-outline:hover { background: rgba(0,240,255,0.1); }
+    .error { color: var(--neon-red); font-size: 0.8rem; margin-top: 10px; font-weight: 600; }
     .hidden { display: none !important; }
-    
-    /* Estilos del Modal de la Tienda */
-    .modal-overlay {
+
+    .modal {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(2, 6, 23, 0.9); z-index: 1000; justify-content: center; align-items: center; padding: 20px;
+      background: rgba(2, 6, 23, 0.92); z-index: 100; justify-content: center; align-items: center; padding: 15px;
     }
-    .modal-content {
-      background: #0f172a; border: 1px solid #334155; border-radius: 12px; width: 100%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+    .modal-box {
+      background: #0b1329; border: 1px solid var(--neon-cyan); border-radius: 14px;
+      width: 100%; max-width: 480px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 0 30px rgba(0,240,255,0.2);
     }
-    .modal-header { padding: 15px 20px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
-    .modal-body { padding: 20px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .modal-header { padding: 15px 20px; background: #070d1a; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 20px; overflow-y: auto; display: grid; grid-template-columns: 1fr; gap: 12px; }
+    
+    .weapon-card {
+      background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 10px;
+      padding: 14px; display: flex; align-items: center; justify-content: space-between;
+      transition: all 0.2s;
+    }
+    .weapon-card:hover { border-color: var(--neon-cyan); background: rgba(0, 240, 255, 0.03); }
+    .weapon-info { text-align: left; }
+    .weapon-name { font-family: 'Orbitron', sans-serif; font-size: 0.9rem; color: #fff; }
+    .weapon-stats { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+    .weapon-price { font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: var(--neon-gold); margin-bottom: 6px; }
   </style>
 </head>
 <body>
 
-  <!-- Pantalla de Login -->
-  <div class="glass-panel" id="loginScreen">
-    <h1 class="game-title">Battle Royale</h1>
-    <p class="game-subtitle">Centro de Mando</p>
-    
-    <div id="loginForm">
+  <!-- LOGIN SCREEN -->
+  <div class="tactical-card" id="loginScreen">
+    <h1>BATTLE ROYALE</h1>
+    <div class="subtitle">Interfaz Táctica v2.5</div>
+
+    <div id="authForm">
       <div class="input-group">
-        <label>Número de WhatsApp</label>
-        <input type="tel" class="input-field" id="phoneInput" placeholder="Ej: 3001234567">
+        <label>Número Celular / WhatsApp</label>
+        <input type="tel" id="phoneInput" placeholder="+57 300 0000000">
       </div>
       <div class="input-group">
-        <label>Nombre de Soldado</label>
-        <input type="text" class="input-field" id="nameInput" placeholder="Tu apodo táctico">
+        <label>Nombre de Operativo</label>
+        <input type="text" id="nameInput" placeholder="Ej. Ghost_07">
       </div>
-      <button class="btn btn-primary" onclick="register()">Registrar e Ingresar</button>
-      <button class="btn btn-secondary" onclick="login()">Ya tengo cuenta</button>
-      <p class="error-msg" id="loginError"></p>
+      <button class="btn btn-cyan" onclick="register()">Registrar e Ingresar</button>
+      <button class="btn btn-outline" onclick="login()">Acceso Rápido (Login)</button>
+      <div class="error" id="authError"></div>
     </div>
 
-    <div id="playerInfo" class="hidden">
-      <div style="margin-bottom: 20px;">
-        <h3 style="color: var(--neon-cyan);" id="loginName">Soldado</h3>
-        <p style="color: var(--neon-yellow); font-size: 1.1rem; margin-top: 5px;">💵 $<span id="loginMoney">0</span></p>
+    <div id="dashboard" class="hidden">
+      <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #1e293b;">
+        <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Operativo Activo</div>
+        <div style="font-family: 'Orbitron', sans-serif; font-size: 1.1rem; color: var(--neon-cyan); margin: 4px 0;" id="dashName">--</div>
+        <div style="font-family: 'Orbitron', sans-serif; font-size: 1rem; color: var(--neon-gold);">💵 $<span id="dashMoney">0</span></div>
       </div>
-      <button class="btn btn-primary" onclick="enterLobby()">Buscar Partida Multijugador</button>
-      <button class="btn btn-secondary" onclick="openShop()">Abrir Tienda de Armas</button>
-      <button class="btn btn-secondary" style="border-color: #f43f5e; color: #f43f5e;" onclick="logout()">Cerrar Sesión</button>
+      <button class="btn btn-cyan" onclick="findMatch()">🎮 Buscar Partida en la Nube</button>
+      <button class="btn btn-outline" onclick="openShop()">🛒 Arsenal y Tienda</button>
+      <button class="btn btn-outline" style="border-color: var(--neon-red); color: var(--neon-red); margin-top: 20px;" onclick="location.reload()">Cerrar Sesión</button>
     </div>
   </div>
 
-  <!-- Modal de Tienda -->
-  <div class="modal-overlay" id="shopModal">
-    <div class="modal-content">
+  <!-- SHOP MODAL -->
+  <div class="modal" id="shopModal">
+    <div class="modal-box">
       <div class="modal-header">
-        <h3 style="color: var(--neon-cyan);">🛒 Tienda de Armas</h3>
-        <button class="btn btn-primary" style="width: auto; padding: 5px 10px; margin:0;" onclick="closeShop()">X</button>
+        <h3 style="font-family: 'Orbitron', sans-serif; color: var(--neon-cyan); font-size: 1rem;">🛒 Arsenal Militar</h3>
+        <button class="btn btn-cyan" style="width: auto; padding: 4px 12px; margin:0;" onclick="closeShop()">X</button>
       </div>
-      <div class="modal-body" id="shopGrid">
-        <!-- Aquí se cargan las armas dinámicamente -->
-      </div>
+      <div class="modal-body" id="shopGrid"></div>
     </div>
   </div>
 
   <script>
     const socket = io();
-    let currentPlayer = null;
+    let player = null;
 
     function register() {
-        const phone = document.getElementById('phoneInput').value.trim();
-        const name = document.getElementById('nameInput').value.trim();
-        if (!phone || !name) {
-            document.getElementById('loginError').textContent = 'Completa todos los campos';
-            return;
-        }
-        socket.emit('auth:register', { phone, name });
+      const phone = document.getElementById('phoneInput').value.trim();
+      const name = document.getElementById('nameInput').value.trim();
+      if(!phone || !name) return document.getElementById('authError').textContent = 'Completa todos los campos.';
+      socket.emit('auth:register', { phone, name });
     }
 
     function login() {
-        const phone = document.getElementById('phoneInput').value.trim();
-        if (!phone) {
-            document.getElementById('loginError').textContent = 'Ingresa tu número';
-            return;
-        }
-        socket.emit('auth:login', { phone });
+      const phone = document.getElementById('phoneInput').value.trim();
+      if(!phone) return document.getElementById('authError').textContent = 'Ingresa tu número.';
+      socket.emit('auth:login', { phone });
     }
 
-    function logout() {
-        currentPlayer = null;
-        document.getElementById('loginForm').classList.remove('hidden');
-        document.getElementById('playerInfo').classList.add('hidden');
-    }
-
-    function enterLobby() {
-        if (!currentPlayer) return;
-        socket.emit('lobby:join', { phone: currentPlayer.phone });
-        alert('Conectando a sala de espera en la nube...');
-    }
-
-    function openShop() {
-        socket.emit('shop:getCatalog');
-        document.getElementById('shopModal').style.display = 'flex';
-    }
-
-    function closeShop() {
-        document.getElementById('shopModal').style.display = 'none';
-    }
-
-    socket.on('auth:success', ({ player }) => {
-        currentPlayer = player;
-        document.getElementById('loginForm').classList.add('hidden');
-        document.getElementById('playerInfo').classList.remove('hidden');
-        document.getElementById('loginName').textContent = player.name;
-        document.getElementById('loginMoney').textContent = player.money;
-        document.getElementById('loginError').textContent = '';
+    socket.on('auth:success', (data) => {
+      player = data.player;
+      document.getElementById('authForm').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      document.getElementById('dashName').textContent = player.name;
+      document.getElementById('dashMoney').textContent = player.money;
     });
 
     socket.on('auth:error', (msg) => {
-        document.getElementById('loginError').textContent = msg;
+      document.getElementById('authError').textContent = msg;
     });
 
-    socket.on('shop:catalog', (data) => {
-        const grid = document.getElementById('shopGrid');
-        grid.innerHTML = '';
-        
-        // Cargar armas de todas las categorías
-        Object.keys(data.weapons).forEach(catKey => {
-            data.weapons[catKey].forEach(w => {
-                const itemBox = document.createElement('div');
-                itemBox.style.cssText = "background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155;";
-                itemBox.innerHTML = `
-                    <div style="font-size: 1.5rem;">${w.icon}</div>
-                    <div style="font-weight: bold; font-size: 0.85rem; color: #fff;">${w.name}</div>
-                    <div style="font-size: 0.75rem; color: #94a3b8;">DMG: ${w.damage}</div>
-                    <div style="color: var(--neon-yellow); font-size: 0.9rem; margin: 5px 0;">$${w.price}</div>
-                    <button class="btn btn-primary" style="padding: 5px; font-size: 0.7rem; margin:0;" onclick="buyItem('weapons', '${w.id}')">Comprar</button>
-                `;
-                grid.appendChild(itemBox);
-            });
-        });
-    });
-
-    function buyItem(category, itemId) {
-        socket.emit('shop:buy', { phone: currentPlayer.phone, itemId, category });
+    function openShop() {
+      socket.emit('shop:getCatalog');
+      document.getElementById('shopModal').style.display = 'flex';
     }
 
-    socket.on('shop:success', ({ item, money, player }) => {
-        currentPlayer = player;
-        document.getElementById('loginMoney').textContent = money;
-        alert(`¡Compraste ${item.name} con éxito!`);
+    function closeShop() {
+      document.getElementById('shopModal').style.display = 'none';
+    }
+
+    socket.on('shop:catalog', (catalog) => {
+      const grid = document.getElementById('shopGrid');
+      grid.innerHTML = '';
+      Object.values(catalog.weapons).forEach(category => {
+        category.forEach(w => {
+          const card = document.createElement('div');
+          card.className = 'weapon-card';
+          card.innerHTML = `
+            <div style="font-size: 2rem; margin-right: 12px;">${w.icon}</div>
+            <div class="weapon-info" style="flex:1;">
+              <div class="weapon-name">${w.name}</div>
+              <div class="weapon-stats">Daño: ${w.damage} HP</div>
+              <div class="weapon-price">$${w.price}</div>
+            </div>
+            <button class="btn btn-cyan" style="width: auto; padding: 6px 12px; margin:0;" onclick="buyWeapon('${w.id}')">Adquirir</button>
+          `;
+          grid.appendChild(card);
+        });
+      });
+    });
+
+    function buyWeapon(itemId) {
+      socket.emit('shop:buy', { phone: player.phone, itemId, category: 'weapons' });
+    }
+
+    socket.on('shop:success', (data) => {
+      player = data.player;
+      document.getElementById('dashMoney').textContent = player.money;
+      alert(`¡Transacción exitosa! Adquiriste ${data.item.name}`);
     });
 
     socket.on('shop:error', (msg) => {
-        alert(msg);
+      alert(msg);
+    });
+
+    function findMatch() {
+      socket.emit('lobby:join', { phone: player.phone });
+      alert('📡 Sintonizando señal de combate... Buscando jugadores en la red.');
+    }
+
+    socket.on('match:started', (data) => {
+      alert(`🚀 ¡Partida encontrada! Entrando a la zona de guerra (${data.matchId})`);
     });
   </script>
 </body>
